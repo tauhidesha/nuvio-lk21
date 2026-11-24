@@ -27,27 +27,19 @@ app.use(
 
 app.use(express.json());
 
-// Vercel Path Normalizer Middleware
-// Fixes Vercel rewrites where req.url is replaced with /api or /api/index or /api/index.ts
-app.use((req: Request, _res: Response, next: NextFunction) => {
-  const matchedPath =
-    (req.headers['x-matched-path'] as string) ||
-    (req.headers['x-forwarded-uri'] as string) ||
-    (req.headers['x-now-route-matches'] as string);
-
-  const queryPart = req.url.includes('?') ? '?' + req.url.split('?')[1] : '';
-
-  if (matchedPath && !matchedPath.startsWith('/api/index')) {
-    req.url = matchedPath + (matchedPath.includes('?') ? '' : queryPart);
-  } else if (req.url.startsWith('/api/index.ts')) {
-    const stripped = req.url.replace('/api/index.ts', '');
-    req.url = (stripped.startsWith('/') ? stripped : '/' + stripped) || '/';
-  } else if (req.url.startsWith('/api/index')) {
-    const stripped = req.url.replace('/api/index', '');
-    req.url = (stripped.startsWith('/') ? stripped : '/' + stripped) || '/';
-  }
-
-  next();
+// Debug Endpoint to inspect Vercel request routing
+app.get('/debug', (req: Request, res: Response) => {
+  res.json({
+    url: req.url,
+    originalUrl: req.originalUrl,
+    path: req.path,
+    query: req.query,
+    headers: {
+      'x-matched-path': req.headers['x-matched-path'],
+      'x-forwarded-uri': req.headers['x-forwarded-uri'],
+      'x-vercel-id': req.headers['x-vercel-id'],
+    },
+  });
 });
 
 // 1. Stremio Manifest
@@ -191,14 +183,8 @@ app.get(['/test-stream', '/api/test-stream'], async (req: Request, res: Response
   }
 });
 
-// 6. Root Landing Page & Direct Function Route Fallback
-app.get(['/', '/api', '/api/index', '/api/index.ts'], (req: Request, res: Response) => {
-  const matched = (req.headers['x-matched-path'] as string) || '';
-  if (matched.includes('manifest.json')) {
-    res.setHeader('Cache-Control', 'max-age=86400, public');
-    return res.json(manifest);
-  }
-
+// 6. Root Landing Page
+app.get(['/', '/api'], (_req: Request, res: Response) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(dashboardHtml);
 });
