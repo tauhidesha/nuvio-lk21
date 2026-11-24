@@ -184,7 +184,14 @@ app.get(['/test-stream', '/api/test-stream'], async (req: Request, res: Response
 });
 
 // 6. Root Landing Page
-app.get(['/', '/api'], (_req: Request, res: Response) => {
+app.get(['/', '/api'], (req: Request, res: Response) => {
+  if (req.headers['x-debug'] === '1' || req.query.debug === '1') {
+    return res.json({
+      url: req.url,
+      originalUrl: req.originalUrl,
+      headers: req.headers,
+    });
+  }
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(dashboardHtml);
 });
