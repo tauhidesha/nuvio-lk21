@@ -156,17 +156,38 @@ router.get('/test-stream', async (req: Request, res: Response) => {
     const lk21Base = await getLK21BaseUrl();
     const movieUrl = `${lk21Base}/${match.slug}`;
     
-    // Debug fetch to see response status and html length
-    const pageRes = await fetch(movieUrl, {
+    // Try primary movie URL
+    let pageRes = await fetch(movieUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Referer': `${lk21Base}/`,
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9,id;q=0.8',
+        'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
       }
     });
 
-    const html = await pageRes.text();
-    const streams = await extractStreamsFromHtml(html);
+    let html = await pageRes.text();
+    let streams = await extractStreamsFromHtml(html);
+
+    // If Cloudflare blocked (403), try nontondrama domain as fallback
+    if (streams.length === 0 && (pageRes.status === 403 || !html.includes('videonode.de'))) {
+      const seriesBase = await getSeriesBaseUrl();
+      const fallbackUrl = `${seriesBase}/${match.slug}`;
+      const fallbackRes = await fetch(fallbackUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+          'Referer': `${seriesBase}/`,
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        }
+      });
+      if (fallbackRes.ok) {
+        const fallbackHtml = await fallbackRes.text();
+        const fallbackStreams = await extractStreamsFromHtml(fallbackHtml);
+        if (fallbackStreams.length > 0) {
+          streams = fallbackStreams;
+        }
+      }
+    }
 
     res.json({
       matchedTitle: match.title,
@@ -175,7 +196,6 @@ router.get('/test-stream', async (req: Request, res: Response) => {
       pageUrl: movieUrl,
       pageStatus: pageRes.status,
       htmlLength: html.length,
-      htmlSnippet: html.substring(0, 300),
       hasVideonode: html.includes('videonode.de'),
       streams,
     });
