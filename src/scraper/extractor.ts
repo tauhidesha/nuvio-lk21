@@ -3,7 +3,7 @@
  * Reverse-engineers Videonode and PlayCDN players to generate direct playable .m3u8 streams.
  */
 
-import * as cheerio from 'cheerio';
+import { getLK21BaseUrl, getSeriesBaseUrl } from './domainResolver.js';
 
 export interface StreamOption {
   name: string;
@@ -81,12 +81,10 @@ async function resolvePlayCdnStream(ref: VideoNodeRef): Promise<StreamOption | n
       console.warn(`[Extractor] videonode api.php returned HTTP ${apiRes.status}`);
       return null;
     }
+
     const json = (await apiRes.json()) as any;
     const embedUrl: string = json?.embedUrl || '';
-    if (!embedUrl) {
-      console.warn(`[Extractor] No embedUrl returned from videonode api.php:`, json);
-      return null;
-    }
+    if (!embedUrl) return null;
 
     // Check if embedUrl points to playcdn.de
     if (embedUrl.includes('playcdn.de')) {
@@ -104,10 +102,7 @@ async function resolvePlayCdnStream(ref: VideoNodeRef): Promise<StreamOption | n
         },
       });
 
-      if (!verifyRes.ok) {
-        console.warn(`[Extractor] playcdn verify returned HTTP ${verifyRes.status}`);
-        return null;
-      }
+      if (!verifyRes.ok) return null;
       const verifyJson = (await verifyRes.json()) as any;
 
       if (verifyJson?.status === 'success' && verifyJson?.fileUrl) {
@@ -166,6 +161,8 @@ export async function extractStreamsFromUrl(pageUrl: string): Promise<StreamOpti
       method: 'GET',
       headers: {
         'User-Agent': USER_AGENT,
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
       },
     });
 
@@ -180,4 +177,32 @@ export async function extractStreamsFromUrl(pageUrl: string): Promise<StreamOpti
     console.error(`[Extractor] Network error loading ${pageUrl}:`, err);
     return [];
   }
+}
+
+/**
+ * Resolves streams for a slug across multiple mirror domains with automatic fallback.
+ */
+export async function extractStreamsForSlug(slug: string): Promise<StreamOption[]> {
+  const lk21Base = await getLK21BaseUrl();
+  const seriesBase = await getSeriesBaseUrl();
+
+  const candidateBases = [
+    lk21Base,
+    'https://tv.lk21official.us',
+    'https://tv13.lk21official.cc',
+    seriesBase,
+    'https://tv1.nontondrama.vip',
+  ];
+
+  const uniqueBases = [...new Set(candidateBases.filter(Boolean))];
+
+  for (const base of uniqueBases) {
+    const url = `${base}/${slug}`;
+    const streams = await extractStreamsFromUrl(url);
+    if (streams.length > 0) {
+      return streams;
+    }
+  }
+
+  return [];
 }

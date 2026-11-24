@@ -9,7 +9,7 @@ import { manifest } from '../src/manifest.js';
 import { getLK21BaseUrl, getSeriesBaseUrl } from '../src/scraper/domainResolver.js';
 import { getMediaMeta } from '../src/meta/cinemeta.js';
 import { findBestMatch, searchLK21 } from '../src/scraper/search.js';
-import { extractStreamsFromUrl, extractStreamsFromHtml, StreamOption } from '../src/scraper/extractor.js';
+import { extractStreamsFromUrl, extractStreamsFromHtml, extractStreamsForSlug, StreamOption } from '../src/scraper/extractor.js';
 import { getSeriesEpisodeStreams } from '../src/scraper/series.js';
 import { getLK21Catalog } from '../src/catalog/lk21Catalog.js';
 import { dashboardHtml } from '../src/public/dashboardHtml.js';
@@ -84,9 +84,7 @@ router.get('/stream/:type/:id.json', async (req: Request, res: Response) => {
     // Case A: Direct LK21 ID from our catalog (e.g. lk21:avengers-endgame-2019)
     if (cleanId.startsWith('lk21:')) {
       const slug = cleanId.replace('lk21:', '');
-      const baseUrl = type === 'series' ? await getSeriesBaseUrl() : await getLK21BaseUrl();
-      const pageUrl = `${baseUrl}/${slug}`;
-      streams = await extractStreamsFromUrl(pageUrl);
+      streams = await extractStreamsForSlug(slug);
     }
     // Case B: TV Series with season and episode (e.g. tt0903747:1:1)
     else if (type === 'series') {
@@ -106,9 +104,7 @@ router.get('/stream/:type/:id.json', async (req: Request, res: Response) => {
       if (meta && meta.title) {
         const match = await findBestMatch(meta.title, meta.year, false);
         if (match && match.slug) {
-          const lk21Base = await getLK21BaseUrl();
-          const movieUrl = `${lk21Base}/${match.slug}`;
-          streams = await extractStreamsFromUrl(movieUrl);
+          streams = await extractStreamsForSlug(match.slug);
         }
       }
     }
@@ -184,48 +180,13 @@ router.get('/test-stream', async (req: Request, res: Response) => {
 
     const lk21Base = await getLK21BaseUrl();
     const movieUrl = `${lk21Base}/${match.slug}`;
-    
-    // Try primary movie URL
-    let pageRes = await fetch(movieUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-        'Referer': `${lk21Base}/`,
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
-      }
-    });
-
-    let html = await pageRes.text();
-    let streams = await extractStreamsFromHtml(html);
-
-    // If Cloudflare blocked (403), try nontondrama domain as fallback
-    if (streams.length === 0 && (pageRes.status === 403 || !html.includes('videonode.de'))) {
-      const seriesBase = await getSeriesBaseUrl();
-      const fallbackUrl = `${seriesBase}/${match.slug}`;
-      const fallbackRes = await fetch(fallbackUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-          'Referer': `${seriesBase}/`,
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        }
-      });
-      if (fallbackRes.ok) {
-        const fallbackHtml = await fallbackRes.text();
-        const fallbackStreams = await extractStreamsFromHtml(fallbackHtml);
-        if (fallbackStreams.length > 0) {
-          streams = fallbackStreams;
-        }
-      }
-    }
+    const streams = await extractStreamsForSlug(match.slug);
 
     res.json({
       matchedTitle: match.title,
       matchedYear: match.year,
       slug: match.slug,
       pageUrl: movieUrl,
-      pageStatus: pageRes.status,
-      htmlLength: html.length,
-      hasVideonode: html.includes('videonode.de'),
       streams,
     });
   } catch (err: any) {
