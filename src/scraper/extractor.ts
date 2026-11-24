@@ -77,10 +77,16 @@ async function resolvePlayCdnStream(ref: VideoNodeRef): Promise<StreamOption | n
       body: bodyParams.toString(),
     });
 
-    if (!apiRes.ok) return null;
+    if (!apiRes.ok) {
+      console.warn(`[Extractor] videonode api.php returned HTTP ${apiRes.status}`);
+      return null;
+    }
     const json = (await apiRes.json()) as any;
     const embedUrl: string = json?.embedUrl || '';
-    if (!embedUrl) return null;
+    if (!embedUrl) {
+      console.warn(`[Extractor] No embedUrl returned from videonode api.php:`, json);
+      return null;
+    }
 
     // Check if embedUrl points to playcdn.de
     if (embedUrl.includes('playcdn.de')) {
@@ -98,7 +104,10 @@ async function resolvePlayCdnStream(ref: VideoNodeRef): Promise<StreamOption | n
         },
       });
 
-      if (!verifyRes.ok) return null;
+      if (!verifyRes.ok) {
+        console.warn(`[Extractor] playcdn verify returned HTTP ${verifyRes.status}`);
+        return null;
+      }
       const verifyJson = (await verifyRes.json()) as any;
 
       if (verifyJson?.status === 'success' && verifyJson?.fileUrl) {
