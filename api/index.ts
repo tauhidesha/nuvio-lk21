@@ -3,7 +3,7 @@
  * Implements Stremio / Nuvio Addon Protocol.
  */
 
-import express, { Request, Response, NextFunction } from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import { manifest } from '../src/manifest.js';
 import { getLK21BaseUrl, getSeriesBaseUrl } from '../src/scraper/domainResolver.js';
@@ -16,7 +16,7 @@ import { dashboardHtml } from '../src/public/dashboardHtml.js';
 
 const app = express();
 
-// Enable CORS for all domains so Nuvio, Stremio, and web clients can access seamlessly
+// Enable CORS for all domains
 app.use(
   cors({
     origin: '*',
@@ -27,29 +27,17 @@ app.use(
 
 app.use(express.json());
 
-// Debug Endpoint to inspect Vercel request routing
-app.get('/debug', (req: Request, res: Response) => {
-  res.json({
-    url: req.url,
-    originalUrl: req.originalUrl,
-    path: req.path,
-    query: req.query,
-    headers: {
-      'x-matched-path': req.headers['x-matched-path'],
-      'x-forwarded-uri': req.headers['x-forwarded-uri'],
-      'x-vercel-id': req.headers['x-vercel-id'],
-    },
-  });
-});
+// Main Stremio & API Router
+const router = express.Router();
 
 // 1. Stremio Manifest
-app.get(['/manifest.json', '/api/manifest.json'], (_req: Request, res: Response) => {
+router.get('/manifest.json', (_req: Request, res: Response) => {
   res.setHeader('Cache-Control', 'max-age=86400, public');
   res.json(manifest);
 });
 
 // 2. Stremio Catalogs
-app.get(['/catalog/:type/:id.json', '/api/catalog/:type/:id.json'], async (req: Request, res: Response) => {
+router.get('/catalog/:type/:id.json', async (req: Request, res: Response) => {
   const { type, id } = req.params;
   try {
     const metas = await getLK21Catalog(type as 'movie' | 'series', id);
@@ -61,8 +49,7 @@ app.get(['/catalog/:type/:id.json', '/api/catalog/:type/:id.json'], async (req: 
   }
 });
 
-// Catalog with search / extra query parameters (e.g. /catalog/movie/lk21-latest/search=avatar.json)
-app.get(['/catalog/:type/:id/:extra.json', '/api/catalog/:type/:id/:extra.json'], async (req: Request, res: Response) => {
+router.get('/catalog/:type/:id/:extra.json', async (req: Request, res: Response) => {
   const { type, id, extra } = req.params;
   try {
     const extraParams: { search?: string; skip?: number } = {};
@@ -85,7 +72,7 @@ app.get(['/catalog/:type/:id/:extra.json', '/api/catalog/:type/:id/:extra.json']
 });
 
 // 3. Stremio Streams Handler
-app.get(['/stream/:type/:id.json', '/api/stream/:type/:id.json'], async (req: Request, res: Response) => {
+router.get('/stream/:type/:id.json', async (req: Request, res: Response) => {
   const { type, id } = req.params;
   const cleanId = id.replace('.json', '');
 
@@ -134,8 +121,8 @@ app.get(['/stream/:type/:id.json', '/api/stream/:type/:id.json'], async (req: Re
   }
 });
 
-// 4. Status API Endpoint (supports both /addon-status and /api/status)
-app.get(['/addon-status', '/api/status'], async (_req: Request, res: Response) => {
+// 4. Status API Endpoint
+router.get(['/addon-status', '/status'], async (_req: Request, res: Response) => {
   try {
     const movieDomain = await getLK21BaseUrl();
     const seriesDomain = await getSeriesBaseUrl();
@@ -151,8 +138,8 @@ app.get(['/addon-status', '/api/status'], async (_req: Request, res: Response) =
   }
 });
 
-// 5. Test Stream Helper for Web Tester (supports /test-stream, /api/test-stream)
-app.get(['/test-stream', '/api/test-stream'], async (req: Request, res: Response) => {
+// 5. Test Stream Helper for Web Tester
+router.get('/test-stream', async (req: Request, res: Response) => {
   const query = (req.query.query as string) || '';
   if (!query) {
     res.status(400).json({ error: 'Query parameter is required' });
@@ -184,16 +171,13 @@ app.get(['/test-stream', '/api/test-stream'], async (req: Request, res: Response
 });
 
 // 6. Root Landing Page
-app.get(['/', '/api'], (req: Request, res: Response) => {
-  if (req.headers['x-debug'] === '1' || req.query.debug === '1') {
-    return res.json({
-      url: req.url,
-      originalUrl: req.originalUrl,
-      headers: req.headers,
-    });
-  }
+router.get('/', (_req: Request, res: Response) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(dashboardHtml);
 });
+
+// Mount on BOTH root '/' AND '/api' prefix
+app.use('/', router);
+app.use('/api', router);
 
 export default app;
