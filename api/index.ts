@@ -182,12 +182,26 @@ router.get('/test-stream', async (req: Request, res: Response) => {
     const movieUrl = `${lk21Base}/${match.slug}`;
     const streams = await extractStreamsForSlug(match.slug);
 
+    const diag: any[] = [];
+    for (const base of ['https://tv.lk21official.us', 'https://tv13.lk21official.cc', 'https://xx1.red']) {
+      try {
+        const r = await fetch(`${base}/${match.slug}`, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36' },
+        });
+        const text = await r.text();
+        diag.push({ base, status: r.status, len: text.length, hasVideonode: text.includes('videonode.de') });
+      } catch (e: any) {
+        diag.push({ base, error: e.message });
+      }
+    }
+
     res.json({
       matchedTitle: match.title,
       matchedYear: match.year,
       slug: match.slug,
       pageUrl: movieUrl,
       streams,
+      diag,
     });
   } catch (err: any) {
     console.error('[Test Stream Error]:', err);
