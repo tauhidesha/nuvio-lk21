@@ -3,7 +3,7 @@
  * Implements Stremio / Nuvio Addon Protocol.
  */
 
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { manifest } from '../src/manifest.js';
 import { getLK21BaseUrl, getSeriesBaseUrl } from '../src/scraper/domainResolver.js';
@@ -27,14 +27,37 @@ app.use(
 
 app.use(express.json());
 
+// Vercel Path Normalizer Middleware
+// Fixes Vercel rewrites where req.url is replaced with /api or /api/index or /api/index.ts
+app.use((req: Request, _res: Response, next: NextFunction) => {
+  const matchedPath =
+    (req.headers['x-matched-path'] as string) ||
+    (req.headers['x-forwarded-uri'] as string) ||
+    (req.headers['x-now-route-matches'] as string);
+
+  const queryPart = req.url.includes('?') ? '?' + req.url.split('?')[1] : '';
+
+  if (matchedPath && !matchedPath.startsWith('/api/index')) {
+    req.url = matchedPath + (matchedPath.includes('?') ? '' : queryPart);
+  } else if (req.url.startsWith('/api/index.ts')) {
+    const stripped = req.url.replace('/api/index.ts', '');
+    req.url = (stripped.startsWith('/') ? stripped : '/' + stripped) || '/';
+  } else if (req.url.startsWith('/api/index')) {
+    const stripped = req.url.replace('/api/index', '');
+    req.url = (stripped.startsWith('/') ? stripped : '/' + stripped) || '/';
+  }
+
+  next();
+});
+
 // 1. Stremio Manifest
-app.get('/manifest.json', (_req: Request, res: Response) => {
+app.get(['/manifest.json', '/api/manifest.json'], (_req: Request, res: Response) => {
   res.setHeader('Cache-Control', 'max-age=86400, public');
   res.json(manifest);
 });
 
 // 2. Stremio Catalogs
-app.get('/catalog/:type/:id.json', async (req: Request, res: Response) => {
+app.get(['/catalog/:type/:id.json', '/api/catalog/:type/:id.json'], async (req: Request, res: Response) => {
   const { type, id } = req.params;
   try {
     const metas = await getLK21Catalog(type as 'movie' | 'series', id);
@@ -47,7 +70,7 @@ app.get('/catalog/:type/:id.json', async (req: Request, res: Response) => {
 });
 
 // Catalog with search / extra query parameters (e.g. /catalog/movie/lk21-latest/search=avatar.json)
-app.get('/catalog/:type/:id/:extra.json', async (req: Request, res: Response) => {
+app.get(['/catalog/:type/:id/:extra.json', '/api/catalog/:type/:id/:extra.json'], async (req: Request, res: Response) => {
   const { type, id, extra } = req.params;
   try {
     const extraParams: { search?: string; skip?: number } = {};
@@ -70,7 +93,7 @@ app.get('/catalog/:type/:id/:extra.json', async (req: Request, res: Response) =>
 });
 
 // 3. Stremio Streams Handler
-app.get('/stream/:type/:id.json', async (req: Request, res: Response) => {
+app.get(['/stream/:type/:id.json', '/api/stream/:type/:id.json'], async (req: Request, res: Response) => {
   const { type, id } = req.params;
   const cleanId = id.replace('.json', '');
 
@@ -136,7 +159,7 @@ app.get(['/addon-status', '/api/status'], async (_req: Request, res: Response) =
   }
 });
 
-// 5. Test Stream Helper for Web Tester (supports both /test-stream and /api/test-stream)
+// 5. Test Stream Helper for Web Tester (supports /test-stream, /api/test-stream)
 app.get(['/test-stream', '/api/test-stream'], async (req: Request, res: Response) => {
   const query = (req.query.query as string) || '';
   if (!query) {
@@ -147,7 +170,7 @@ app.get(['/test-stream', '/api/test-stream'], async (req: Request, res: Response
   try {
     const match = await findBestMatch(query);
     if (!match) {
-      res.json({ streams: [], message: 'No movie match found on LK21' });
+      res.json({ streams: [], message: `Tidak ditemukan film untuk kata kunci: "${query}" di LK21.` });
       return;
     }
 
@@ -168,8 +191,14 @@ app.get(['/test-stream', '/api/test-stream'], async (req: Request, res: Response
   }
 });
 
-// 6. Root Landing Page
-app.get('/', (_req: Request, res: Response) => {
+// 6. Root Landing Page & Direct Function Route Fallback
+app.get(['/', '/api', '/api/index', '/api/index.ts'], (req: Request, res: Response) => {
+  const matched = (req.headers['x-matched-path'] as string) || '';
+  if (matched.includes('manifest.json')) {
+    res.setHeader('Cache-Control', 'max-age=86400, public');
+    return res.json(manifest);
+  }
+
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(dashboardHtml);
 });
