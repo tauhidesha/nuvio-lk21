@@ -271,7 +271,7 @@ export const dashboardHtml = `<!DOCTYPE html>
     document.getElementById('btn-install-stremio').href = 'stremio://' + window.location.host + '/manifest.json';
 
     // Fetch live status
-    fetch('/api/status')
+    fetch('/addon-status')
       .then(res => res.json())
       .then(data => {
         document.getElementById('domain-info').textContent =
@@ -303,11 +303,22 @@ export const dashboardHtml = `<!DOCTYPE html>
       if (hlsInstance) { hlsInstance.destroy(); }
 
       try {
-        const res = await fetch('/api/test-stream?query=' + encodeURIComponent(q));
-        const data = await res.json();
+        const res = await fetch('/test-stream?query=' + encodeURIComponent(q));
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          throw new Error('Server returned non-JSON response (' + res.status + '): ' + text.substring(0, 150));
+        }
+
+        if (data.error) {
+          statusEl.textContent = 'Error: ' + data.error;
+          return;
+        }
 
         if (!data.streams || data.streams.length === 0) {
-          statusEl.textContent = 'Tidak ditemukan stream untuk judul ini di LK21.';
+          statusEl.textContent = data.message || 'Tidak ditemukan stream untuk judul ini di LK21.';
           return;
         }
 

@@ -119,21 +119,25 @@ app.get('/stream/:type/:id.json', async (req: Request, res: Response) => {
   }
 });
 
-// 4. Status API Endpoint
-app.get('/api/status', async (_req: Request, res: Response) => {
-  const movieDomain = await getLK21BaseUrl();
-  const seriesDomain = await getSeriesBaseUrl();
-  res.json({
-    status: 'ok',
-    movieDomain,
-    seriesDomain,
-    version: '1.0.0',
-    timestamp: new Date().toISOString(),
-  });
+// 4. Status API Endpoint (supports both /addon-status and /api/status)
+app.get(['/addon-status', '/api/status'], async (_req: Request, res: Response) => {
+  try {
+    const movieDomain = await getLK21BaseUrl();
+    const seriesDomain = await getSeriesBaseUrl();
+    res.json({
+      status: 'ok',
+      movieDomain,
+      seriesDomain,
+      version: '1.0.0',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    res.status(500).json({ status: 'error', message: err.message });
+  }
 });
 
-// 5. Test Stream Helper for Web Tester
-app.get('/api/test-stream', async (req: Request, res: Response) => {
+// 5. Test Stream Helper for Web Tester (supports both /test-stream and /api/test-stream)
+app.get(['/test-stream', '/api/test-stream'], async (req: Request, res: Response) => {
   const query = (req.query.query as string) || '';
   if (!query) {
     res.status(400).json({ error: 'Query parameter is required' });
@@ -159,7 +163,8 @@ app.get('/api/test-stream', async (req: Request, res: Response) => {
       streams,
     });
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    console.error('[Test Stream Error]:', err);
+    res.status(500).json({ error: err.message || 'Internal error resolving streams' });
   }
 });
 
