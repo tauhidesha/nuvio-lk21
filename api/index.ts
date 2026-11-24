@@ -5,8 +5,6 @@
 
 import express, { Request, Response } from 'express';
 import cors from 'cors';
-import path from 'path';
-import fs from 'fs';
 import { manifest } from '../src/manifest.js';
 import { getLK21BaseUrl, getSeriesBaseUrl } from '../src/scraper/domainResolver.js';
 import { getMediaMeta } from '../src/meta/cinemeta.js';
@@ -14,6 +12,7 @@ import { findBestMatch, searchLK21 } from '../src/scraper/search.js';
 import { extractStreamsFromUrl, StreamOption } from '../src/scraper/extractor.js';
 import { getSeriesEpisodeStreams } from '../src/scraper/series.js';
 import { getLK21Catalog } from '../src/catalog/lk21Catalog.js';
+import { dashboardHtml } from '../src/public/dashboardHtml.js';
 
 const app = express();
 
@@ -166,12 +165,8 @@ app.get('/api/test-stream', async (req: Request, res: Response) => {
 
 // 6. Root Landing Page
 app.get('/', (_req: Request, res: Response) => {
-  const htmlPath = path.join(process.cwd(), 'src', 'public', 'index.html');
-  if (fs.existsSync(htmlPath)) {
-    res.sendFile(htmlPath);
-  } else {
-    res.send(`<h1>LK21 Nuvio Addon</h1><p><a href="/manifest.json">manifest.json</a></p>`);
-  }
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(dashboardHtml);
 });
 
 export default app;
