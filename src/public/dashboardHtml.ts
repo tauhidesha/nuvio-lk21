@@ -202,20 +202,54 @@ export const dashboardHtml = `<!DOCTYPE html>
   <div class="container">
     <header>
       <div class="logo-badge">LK21 • NUVIO ADD-ON</div>
-      <h1>Nuvio & Stremio Add-on LK21</h1>
-      <p class="subtitle">Streaming film bioskop dan serial drama dengan subtitle Indonesia langsung di Android TV.</p>
+      <h1>Nuvio LK21 & Nontondrama (Android TV)</h1>
+      <p class="subtitle">Streaming film bioskop dan drama serial subtitle Indonesia langsung di Android TV & Stremio.</p>
     </header>
 
-    <!-- Installation Card -->
+    <!-- Nuvio Native Plugin Card (Primary Solution) -->
+    <div class="card" style="border: 2px solid #10b981;">
+      <div class="status-row">
+        <div>
+          <span style="background: #10b981; color: black; font-weight: 700; font-size: 11px; padding: 2px 8px; border-radius: 4px; text-transform: uppercase;">Direkomendasikan untuk Nuvio Android TV</span>
+          <h3 style="margin-top: 6px;">Nuvio Native Plugin (Bebas Blokir Cloudflare)</h3>
+          <p style="color: var(--text-muted); font-size: 13px;">
+            Scraper berjalan langsung di TV menggunakan Wi-Fi lokal rumah Anda, sehingga 100% aman dari blokir Cloudflare.
+          </p>
+        </div>
+        <div class="badge">
+          <div class="badge-dot"></div>
+          <span>Native Scraper Siap</span>
+        </div>
+      </div>
+
+      <div class="manifest-box" style="margin-top: 14px;">
+        <span id="nuvio-repo-url">https://raw.githubusercontent.com/tauhidesha/nuvio-lk21/main/manifest.json</span>
+        <button class="btn btn-secondary" onclick="copyNuvioRepo()" style="padding: 6px 12px; font-size: 12px;">Salin URL Plugin</button>
+      </div>
+
+      <div style="margin-top: 16px; background: rgba(16, 185, 129, 0.08); padding: 14px; border-radius: 8px;">
+        <h4 style="color: #10b981; font-size: 14px; margin-bottom: 8px;">Cara Pasang di Nuvio Android TV:</h4>
+        <ol class="steps-list" style="margin-left: 18px;">
+          <li>Buka aplikasi <strong>Nuvio</strong> di Android TV Anda.</li>
+          <li>Buka menu <strong>Settings</strong> ➔ pilih <strong>Plugins / Content & Discovery</strong>.</li>
+          <li>Pilih <strong>Add Repository</strong> (Tambah Repositori).</li>
+          <li>Masukkan URL di atas: <code style="color: #10b981;">https://raw.githubusercontent.com/tauhidesha/nuvio-lk21/main/manifest.json</code></li>
+          <li>Pilih plugin <strong>LK21 (Sub Indo)</strong> lalu klik <strong>Enable / Install</strong>.</li>
+          <li>Putar film bioskop atau drakor favorit Anda dengan subtitle Indonesia!</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- Web Add-on Card (Secondary / Stremio) -->
     <div class="card">
       <div class="status-row">
         <div>
-          <h3>Status Add-on</h3>
+          <h3>Stremio / Web Add-on Manifest</h3>
           <p id="domain-info" style="color: var(--text-muted); font-size: 13px;">Mengecek mirror domain LK21...</p>
         </div>
         <div class="badge" id="status-badge">
           <div class="badge-dot"></div>
-          <span id="status-text">Online & Siap Dipakai</span>
+          <span id="status-text">Serverless Active</span>
         </div>
       </div>
 
@@ -225,8 +259,8 @@ export const dashboardHtml = `<!DOCTYPE html>
       </div>
 
       <div class="btn-group">
-        <a id="btn-install-stremio" href="#" class="btn btn-primary">⚡ Pasang ke Nuvio / Stremio</a>
-        <button class="btn btn-secondary" onclick="copyManifest()">📋 Salin Link Manifest</button>
+        <a id="btn-install-stremio" href="#" class="btn btn-primary">⚡ Pasang ke Stremio</a>
+        <button class="btn btn-secondary" onclick="copyManifest()">📋 Salin Link Web Manifest</button>
       </div>
     </div>
 
@@ -284,6 +318,12 @@ export const dashboardHtml = `<!DOCTYPE html>
     function copyManifest() {
       navigator.clipboard.writeText(manifestUrl);
       alert('URL Manifest berhasil disalin!\\n' + manifestUrl);
+    }
+
+    function copyNuvioRepo() {
+      const nuvioUrl = 'https://raw.githubusercontent.com/tauhidesha/nuvio-lk21/main/manifest.json';
+      navigator.clipboard.writeText(nuvioUrl);
+      alert('URL Repositori Plugin Nuvio berhasil disalin!\\n' + nuvioUrl);
     }
 
     let hlsInstance = null;

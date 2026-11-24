@@ -1,0 +1,50 @@
+{
+  "name": "LK21 & Nontondrama Repo",
+  "version": "1.0.0",
+  "scrapers": [
+    {
+      "id": "lk21",
+      "name": "LK21 (Sub Indo)",
+      "description": "Nonton film bioskop dan serial drama sub Indo dari Layarkaca21 & Nontondrama",
+      "version": "1.0.0",
+      "author": "tauhidesha",
+      "supportedTypes": [
+        "movie",
+        "tv"
+      ],
+      "filename": "providers/lk21.js",
+      "url": "https://raw.githubusercontent.com/tauhidesha/nuvio-lk21/main/providers/lk21.js",
+      "enabled": true,
+      "formats": [
+        "m3u8"
+      ],
+      "logo": "https://www.google.com/s2/favicons?domain=tv.lk21official.us&sz=128",
+      "contentLanguage": [
+        "id"
+      ]
+    }
+  ],
+  "plugins": [
+    {
+      "id": "lk21",
+      "name": "LK21 (Sub Indo)",
+      "description": "Nonton film bioskop dan serial drama sub Indo dari Layarkaca21 & Nontondrama",
+      "version": "1.0.0",
+      "author": "tauhidesha",
+      "supportedTypes": [
+        "movie",
+        "tv"
+      ],
+      "filename": "providers/lk21.js",
+      "url": "https://raw.githubusercontent.com/tauhidesha/nuvio-lk21/main/providers/lk21.js",
+      "enabled": true,
+      "formats": [
+        "m3u8"
+      ],
+      "logo": "https://www.google.com/s2/favicons?domain=tv.lk21official.us&sz=128",
+      "contentLanguage": [
+        "id"
+      ]
+    }
+  ]
+}

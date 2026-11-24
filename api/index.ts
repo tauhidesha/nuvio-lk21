@@ -30,10 +30,53 @@ app.use(express.json());
 // Main Stremio & API Router
 const router = express.Router();
 
-// 1. Stremio Manifest
+// 1. Stremio & Nuvio Manifests
 router.get('/manifest.json', (_req: Request, res: Response) => {
   res.setHeader('Cache-Control', 'max-age=86400, public');
   res.json(manifest);
+});
+
+// Nuvio Native Scraper Plugin Repository Manifest
+const nuvioRepoManifest = {
+  name: "LK21 & Nontondrama Repo",
+  version: "1.0.0",
+  scrapers: [
+    {
+      id: "lk21",
+      name: "LK21 (Sub Indo)",
+      description: "Nonton film bioskop dan serial drama sub Indo dari Layarkaca21 & Nontondrama",
+      version: "1.0.0",
+      author: "tauhidesha",
+      supportedTypes: ["movie", "tv"],
+      filename: "providers/lk21.js",
+      url: "https://raw.githubusercontent.com/tauhidesha/nuvio-lk21/main/providers/lk21.js",
+      enabled: true,
+      formats: ["m3u8"],
+      logo: "https://www.google.com/s2/favicons?domain=tv.lk21official.us&sz=128",
+      contentLanguage: ["id"]
+    }
+  ],
+  plugins: [
+    {
+      id: "lk21",
+      name: "LK21 (Sub Indo)",
+      description: "Nonton film bioskop dan serial drama sub Indo dari Layarkaca21 & Nontondrama",
+      version: "1.0.0",
+      author: "tauhidesha",
+      supportedTypes: ["movie", "tv"],
+      filename: "providers/lk21.js",
+      url: "https://raw.githubusercontent.com/tauhidesha/nuvio-lk21/main/providers/lk21.js",
+      enabled: true,
+      formats: ["m3u8"],
+      logo: "https://www.google.com/s2/favicons?domain=tv.lk21official.us&sz=128",
+      contentLanguage: ["id"]
+    }
+  ]
+};
+
+router.get(['/plugins.json', '/nuvio-manifest.json', '/nuvio/manifest.json'], (_req: Request, res: Response) => {
+  res.setHeader('Cache-Control', 'max-age=3600, public');
+  res.json(nuvioRepoManifest);
 });
 
 // 2. Stremio Catalogs
