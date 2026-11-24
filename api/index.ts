@@ -138,6 +138,35 @@ router.get(['/addon-status', '/status'], async (_req: Request, res: Response) =>
   }
 });
 
+// Test videonode directly from Vercel
+router.get('/test-videonode', async (_req: Request, res: Response) => {
+  try {
+    const bodyParams = new URLSearchParams({
+      host: 'p2p',
+      id: '2mUBBmhmPEAKpgUEf8yPYg',
+    });
+
+    const apiRes = await fetch('https://videonode.de/api.php', {
+      method: 'POST',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Referer': 'https://videonode.de/iframe3/p2p/2mUBBmhmPEAKpgUEf8yPYg?v=1',
+        'Origin': 'https://videonode.de',
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: bodyParams.toString(),
+    });
+
+    const text = await apiRes.text();
+    res.json({
+      status: apiRes.status,
+      response: text,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // 5. Test Stream Helper for Web Tester
 router.get('/test-stream', async (req: Request, res: Response) => {
   const query = (req.query.query as string) || '';
