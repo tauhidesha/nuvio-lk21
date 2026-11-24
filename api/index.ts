@@ -175,6 +175,7 @@ router.get('/test-stream', async (req: Request, res: Response) => {
       pageUrl: movieUrl,
       pageStatus: pageRes.status,
       htmlLength: html.length,
+      htmlSnippet: html.substring(0, 300),
       hasVideonode: html.includes('videonode.de'),
       streams,
     });
